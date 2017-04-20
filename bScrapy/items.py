@@ -16,3 +16,9 @@ class BscrapyItem(scrapy.Item):
 class SynonymItem(scrapy.Item):
     original_word = scrapy.Field ()
     synonym_words = scrapy.Field ()
+
+class HomeItem(scrapy.Item):
+    title = scrapy.Field ()
+    address = scrapy.Field ()
+    price = scrapy.Field ()
+    hid = scrapy.Field ()

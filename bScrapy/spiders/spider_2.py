@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
+import time
 import scrapy
 import urllib
 import logging
+import requests
+from lxml import etree
 from scrapy.spiders import CrawlSpider, Rule
+from bScrapy.items import HomeItem
 
 START_URL = "http://bj.lianjia.com/ershoufang/"
+SLEEP_TIME = 2
+global_cnt = 0;
 
 COMMON_HEADER = {
     "Proxy-Connection" : "keep-alive",
@@ -21,38 +27,60 @@ COMMON_HEADER = {
 
 class ScrapyVersion2(CrawlSpider):
     name = "Spider_2"
+#    district_list = ['dongcheng', 'xicheng', 'chaoyang', 'haidian', 'fengtai', 'shijingshan', 'tongzhou', 'changping', ]
+    district_list = ['dongcheng']
+    home_id_list = []
+
+    def __del__(self):
+        global global_cnt
+        print "Done: %d" % (global_cnt)
+        
     def start_requests(self):
+        global global_cnt
         logging.info ("start crawl LianJian site.");
         tmp_head = COMMON_HEADER;
-        tmp_head["Host"] = "http://bj.lianjia.com/ershoufang/"
-        yield scrapy.Request (START_URL, headers = tmp_head, callback = self.homePageCallback)
-
-    def homePageCallback(self, response):
-        if response.status is 200:
-            logging.info ("LianJia HomePage load success.");
-            print response.body
-            districts = response.xpath ("/html/body/div[3]/div[1]/dl[2]/dd/div[1]/div/a")
-            tmp_head = COMMON_HEADER;
-            tmp_head["Host"] = "bj.lianjia.com"
-            for district in districts:
-                district_name = district.xpath("text()").extract_first ()
-                district_url = district.xpath("@href").extract_first ()
-                new_url = "http://bj.lianjia.com%s" % (district_url)
-                print "found new url: %s" % (new_url)
-                yield scrapy.Request (new_url, headers = tmp_head, callback = self.workCallback);
-        else:
-            logging.error ("LianJia HomePage load failed %s" % (response.status))
-
-    def workCallback(self, response):
-        if response.status is 200:
-
-            next_page = response.xpath("/html/body/div[4]/div[1]/div[7]/div[2]/div[1]/a[4]")
-            print next_page, type (next_page)
+        tmp_head["Host"] = "bj.lianjia.com"
+        for district_name in self.district_list:
+            url = "http://bj.lianjia.com/ershoufang/%s/" % (district_name);
+            yield scrapy.Request (url, headers = tmp_head, callback = self.workCallback)
+#            time.sleep (SLEEP_TIME)
+            global_cnt += 1
             
-            homes = response.xpath("/html/body/div[4]/div[1]/ul/li");
-            for home in homes:
-                title = home.xpath ("div[1]/div[1]/a//text()").extract_first ()
-                address = home.xpath ("div[1]/div[2]/div/a//text()").extract_first ()
-                price = home.xpath ("div[1]/div[6]/div[1]/span//text()").extract_first ()
+    def workCallback(self, response):
+        global global_cnt
+        print response.request.headers
+        print response.headers
+        if response.status is 200:
+            base_url = response.url;
+            tmp_head = COMMON_HEADER
+            tmp_head["Host"] = 'bj.lianjia.com'
+            
+            for i in range (1, 101):
+                new_url = "%spg%d/" % (base_url, i)
+                time.sleep (SLEEP_TIME)
+                yield scrapy.Request (new_url, headers = tmp_head, callback = self.pageCallback)
+                global_cnt += 1
         else:
             logging.error ("failed");
+            
+    def pageCallback(self, response):
+        if response.status is 200:
+            home_list = response.xpath("/html/body/div[4]/div[1]/ul/li")
+            item = HomeItem ()
+            for home in home_list:
+                title = home.xpath ("div[1]/div[1]/a//text()").extract_first ()
+                hid = home.xpath ("div[2]/div[1]/@data-hid").extract_first ()
+                address = home.xpath ("div[1]/div[2]/div/a//text()").extract_first ()
+                price = home.xpath ("div[1]/div[6]/div[1]/span//text()").extract_first ()
+
+#                if hid in self.home_id_list:
+#                   continue
+#                self.home_id_list.append (hid)
+
+                item["title"] = title
+                item["address"] = address
+                item["price"] = price
+                item["hid"] = hid
+                yield item
+        else:
+            logging.error ("request page: %s failed %s", response.url, response.status);
