@@ -27,8 +27,7 @@ COMMON_HEADER = {
 
 class ScrapyVersion2(CrawlSpider):
     name = "Spider_2"
-#    district_list = ['dongcheng', 'xicheng', 'chaoyang', 'haidian', 'fengtai', 'shijingshan', 'tongzhou', 'changping', ]
-    district_list = ['dongcheng']
+    district_list = ['dongcheng', 'xicheng', 'chaoyang', 'haidian', 'fengtai', 'shijingshan', 'tongzhou', 'changping', ]
     home_id_list = []
 
     def __del__(self):
@@ -43,13 +42,11 @@ class ScrapyVersion2(CrawlSpider):
         for district_name in self.district_list:
             url = "http://bj.lianjia.com/ershoufang/%s/" % (district_name);
             yield scrapy.Request (url, headers = tmp_head, callback = self.workCallback)
-#            time.sleep (SLEEP_TIME)
+            time.sleep (SLEEP_TIME)
             global_cnt += 1
             
     def workCallback(self, response):
         global global_cnt
-        print response.request.headers
-        print response.headers
         if response.status is 200:
             base_url = response.url;
             tmp_head = COMMON_HEADER
