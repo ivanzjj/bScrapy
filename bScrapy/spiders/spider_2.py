@@ -6,14 +6,16 @@ import scrapy
 import urllib
 import logging
 import requests
+import csv
+import datetime
 from random import uniform
 from lxml import etree
 from scrapy.spiders import CrawlSpider, Rule
-from bScrapy.items import HomeItem
+from bScrapy.items import *
 
 START_URL = "http://bj.lianjia.com/ershoufang/"
 SLEEP_TIME = 2
-global_cnt = 0;
+LAST_DATA_FILE = "old.csv"
 
 COMMON_HEADER = {
     "Proxy-Connection" : "keep-alive",
@@ -33,12 +35,28 @@ class ScrapyVersion2(CrawlSpider):
 
     id_map = []
 
-    def __del__(self):
-        global global_cnt
-        print "Done: %d" % (global_cnt)
+    old_data_map = {}
+
+    def __init__(self):
+        logging.info ("Loading Last data......")
+        with open(LAST_DATA_FILE, "r") as fp:
+            csv_reader = csv.DictReader (fp)
+            for row in csv_reader:
+                print type (row), row
+                id_ = row['hid']
+                self.old_data_map[id_] = []
+                self.old_data_map[id_].append (row['prices'].split(','))
+                self.old_data_map[id_].append (row['dates'].split(','))
+                self.old_data_map[id_].append (row['title'])
+                self.old_data_map[id_].append (row['address'])
+
+        print "Len: %d" % (len(self.old_data_map))
+
+    def closed (self, reason):
+        print "Old_data_map: %d" % (len (self.old_data_map))
+        
         
     def start_requests(self):
-        global global_cnt
         logging.info ("start crawl LianJian site.");
         tmp_head = COMMON_HEADER;
         tmp_head["Host"] = "bj.lianjia.com"
@@ -47,21 +65,25 @@ class ScrapyVersion2(CrawlSpider):
             yield scrapy.Request (url, headers = tmp_head, callback = self.workCallback)
             time_1 = SLEEP_TIME + uniform (0,2);
             time.sleep (time_1)
-            global_cnt += 1
             
     def workCallback(self, response):
-        global global_cnt
         if response.status is 200:
             base_url = response.url;
             tmp_head = COMMON_HEADER
             tmp_head["Host"] = 'bj.lianjia.com'
             
-            for i in range (1, 101):
+            for i in range (1, 2):
                 new_url = "%spg%d/" % (base_url, i)
+                refer_url = base_url
+                if i == 1:
+                    pass;
+                elif i == 2:
+                    tmp_head['Referer'] = base_url
+                else:
+                    tmp_head['Referer'] = "%spg%d/" % (base_url, i-1)
                 time_1 = SLEEP_TIME + uniform (0, 2);
                 time.sleep (time_1)
                 yield scrapy.Request (new_url, headers = tmp_head, callback = self.pageCallback)
-                global_cnt += 1
         else:
             logging.error ("failed");
             
@@ -79,10 +101,39 @@ class ScrapyVersion2(CrawlSpider):
                     continue
                 self.id_map.append (hid)
 
-                item["title"] = title
-                item["address"] = address
-                item["price"] = price
-                item["hid"] = hid
-                yield item
+                prices_vec = []
+                dates_vec = []
+                now = str(datetime.date.today())
+                if hid not in self.old_data_map:
+                    # new home
+#                    print "new home: %s" % (hid)
+                    new_item = NewItem ()
+                    new_item['title'] = title
+                    new_item['address'] = address
+                    new_item['prices'] = [price]
+                    new_item['dates'] = [now]
+                    new_item['hid'] = hid
+                    yield new_item
+                    
+                else:
+                    prices_vec = self.old_data_map[hid][0]
+                    dates_vec = self.old_data_map[hid][1]
+                    del self.old_data_map[hid]
+                    
+                if len(prices_vec) != 0 and prices_vec[-1] == price:
+                    # do not need add
+                    pass
+                else:
+                    prices_vec.append (price)
+                    dates_vec.append (now)
+
+                home_item = HomeItem ()
+                home_item['title'] = title
+                home_item['address'] = address
+                home_item['prices'] = prices_vec
+                home_item['dates'] = dates_vec
+                home_item['hid'] = hid
+                yield home_item
+                
         else:
             logging.error ("request page: %s failed %s", response.url, response.status);

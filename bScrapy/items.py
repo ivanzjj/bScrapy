@@ -20,5 +20,22 @@ class SynonymItem(scrapy.Item):
 class HomeItem(scrapy.Item):
     title = scrapy.Field ()
     address = scrapy.Field ()
-    price = scrapy.Field ()
+    prices = scrapy.Field ()
+    dates = scrapy.Field ()
     hid = scrapy.Field ()
+
+class DelItem(scrapy.Item):
+    title = scrapy.Field ()
+    address = scrapy.Field ()
+    prices = scrapy.Field ()
+    dates = scrapy.Field ()
+    hid = scrapy.Field ()
+
+class NewItem(scrapy.Item):
+    title = scrapy.Field ()
+    address = scrapy.Field ()
+    prices = scrapy.Field ()
+    dates = scrapy.Field ()
+    hid = scrapy.Field ()
+    
+    
