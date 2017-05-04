@@ -6,6 +6,7 @@ import scrapy
 import urllib
 import logging
 import requests
+from random import uniform
 from lxml import etree
 from scrapy.spiders import CrawlSpider, Rule
 from bScrapy.items import HomeItem
@@ -42,7 +43,8 @@ class ScrapyVersion2(CrawlSpider):
         for district_name in self.district_list:
             url = "http://bj.lianjia.com/ershoufang/%s/" % (district_name);
             yield scrapy.Request (url, headers = tmp_head, callback = self.workCallback)
-            time.sleep (SLEEP_TIME)
+            time_1 = SLEEP_TIME + uniform (0,2);
+            time.sleep (time_1)
             global_cnt += 1
             
     def workCallback(self, response):
@@ -54,7 +56,8 @@ class ScrapyVersion2(CrawlSpider):
             
             for i in range (1, 101):
                 new_url = "%spg%d/" % (base_url, i)
-                time.sleep (SLEEP_TIME)
+                time_1 = SLEEP_TIME + uniform (0, 2);
+                time.sleep (time_1)
                 yield scrapy.Request (new_url, headers = tmp_head, callback = self.pageCallback)
                 global_cnt += 1
         else:
