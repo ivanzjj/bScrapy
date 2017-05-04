@@ -31,6 +31,8 @@ class ScrapyVersion2(CrawlSpider):
     district_list = ['dongcheng', 'xicheng', 'chaoyang', 'haidian', 'fengtai', 'shijingshan', 'tongzhou', 'changping', ]
     home_id_list = []
 
+    id_map = []
+
     def __del__(self):
         global global_cnt
         print "Done: %d" % (global_cnt)
@@ -73,9 +75,9 @@ class ScrapyVersion2(CrawlSpider):
                 address = home.xpath ("div[1]/div[2]/div/a//text()").extract_first ()
                 price = home.xpath ("div[1]/div[6]/div[1]/span//text()").extract_first ()
 
-#                if hid in self.home_id_list:
-#                   continue
-#                self.home_id_list.append (hid)
+                if hid in self.id_map:
+                    continue
+                self.id_map.append (hid)
 
                 item["title"] = title
                 item["address"] = address
