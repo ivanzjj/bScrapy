@@ -8,6 +8,7 @@ import logging
 import requests
 import csv
 import datetime
+from send_email import *
 from random import uniform
 from lxml import etree
 from scrapy.spiders import CrawlSpider, Rule
@@ -16,6 +17,11 @@ from bScrapy.items import *
 START_URL = "http://bj.lianjia.com/ershoufang/"
 SLEEP_TIME = 2
 LAST_DATA_FILE = "old.csv"
+
+USER = "xxx@163.com"
+PWD = "xxxxxx"
+RECIPIENT = "xxxx@126.com"
+SUBJECT = "LianJia Crawler"
 
 COMMON_HEADER = {
     "Proxy-Connection" : "keep-alive",
@@ -37,6 +43,11 @@ class ScrapyVersion2(CrawlSpider):
 
     old_data_map = {}
 
+    upd_data_map = {}
+
+    new_data_map = {}
+
+
     def __init__(self):
         logging.info ("Loading Last data......")
         with open(LAST_DATA_FILE, "r") as fp:
@@ -52,7 +63,42 @@ class ScrapyVersion2(CrawlSpider):
         print "Len: %d" % (len(self.old_data_map))
 
     def closed (self, reason):
+        body = 'Price Update Homes List'
+        for hid, vec in self.upd_data_map.iteritems():
+            prices_vec = vec[0]
+            dates_vec = vec[1]
+            title = vec[2]
+            address = vec[3]
+            link = "http://bj.lianjia.com/ershoufang/%s.html" % (hid)
+            body = "%s\nTitle: %s\tAddress: %s\tLast price change date: %s\tLast price: %s\tNow price: %s\tLink: %s" % (body, title, address, dates_vec[-2], prices_vec[-2], prices_vec[-1], link)
+
+
+        body = "%s\n\n\n\nNew Home List" % (body)
+        for hid, vec in self.new_data_map.iteritems():
+            prices_vec = vec[0]
+            dates_vec = vec[1]
+            title = vec[2]
+            address = vec[3]
+            link = "http://bj.lianjia.com/ershoufang/%s.html" % (hid)
+            body = "%s\nTitle: %s\tAddress: %s\tPrice: %s\tLink: %s" % (body, title, address, prices_vec[0], link)
+
+        body = "%s\n\n\n\nSold Homes List" % (body)
+        for hid, vec in self.old_data_map.iteritems():
+            prices_vec = vec[0]
+            dates_vec = vec[1]
+            title = vec[2]
+            address = vec[3]
+            link = "http://bj.lianjia.com/ershoufang/%s.html" % (hid)
+            body = "%s\nTitle: %s\tAddress: %s\tPrice: %s\tLink: %s" % (body, title, address, prices_vec[-1], link)
+
+        print body
+        now = str(datetime.date.today())
+        if send_email_163 (USER, PWD,  RECIPIENT, "%s---%s" % (SUBJECT, now), body):
+            logging.info ("send email success.")
+
         print "Old_data_map: %d" % (len (self.old_data_map))
+        print "New_data_map: %d" % (len (self.new_data_map))
+        print "Upd_data_map: %d" % (len (self.upd_data_map))        
         
         
     def start_requests(self):
@@ -112,6 +158,12 @@ class ScrapyVersion2(CrawlSpider):
                     new_item['dates'] = [now]
                     new_item['hid'] = hid
                     yield new_item
+
+                    self.new_data_map[hid] = []
+                    self.new_data_map[hid].append ([price])
+                    self.new_data_map[hid].append ([now])
+                    self.new_data_map[hid].append (title)
+                    self.new_data_map[hid].append (address)
                     
                 else:
                     prices_vec = self.old_data_map[hid][0]
@@ -124,6 +176,13 @@ class ScrapyVersion2(CrawlSpider):
                 else:
                     prices_vec.append (price)
                     dates_vec.append (now)
+
+                    if len (prices_vec) > 1:
+                        self.upd_data_map[hid] = []
+                        self.upd_data_map[hid].append (prices_vec)
+                        self.upd_data_map[hid].append (dates_vec)
+                        self.upd_data_map[hid].append (title)
+                        self.upd_data_map[hid].append (address)
 
                 home_item = HomeItem ()
                 home_item['title'] = title
