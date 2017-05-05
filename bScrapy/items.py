@@ -17,14 +17,10 @@ class SynonymItem(scrapy.Item):
     original_word = scrapy.Field ()
     synonym_words = scrapy.Field ()
 
-class HomeItem(scrapy.Item):
-    title = scrapy.Field ()
-    address = scrapy.Field ()
-    prices = scrapy.Field ()
-    dates = scrapy.Field ()
-    hid = scrapy.Field ()
 
-class DelItem(scrapy.Item):
+# definition for Spider_2
+
+class HomeItem(scrapy.Item):
     title = scrapy.Field ()
     address = scrapy.Field ()
     prices = scrapy.Field ()
@@ -37,5 +33,6 @@ class NewItem(scrapy.Item):
     prices = scrapy.Field ()
     dates = scrapy.Field ()
     hid = scrapy.Field ()
-    
+
+# end of definition for Spider_2     
     

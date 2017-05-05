@@ -88,3 +88,9 @@ ITEM_PIPELINES = {
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+
+FEED_EXPORTERS = {
+    'csv': 'bScrapy.spiders.custom_csv_item_exporter.CustomCsvItemExporter',
+}
+
+CSV_DELIMITER = "\t"

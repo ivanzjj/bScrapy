@@ -1,18 +1,24 @@
-from scrapy.xlib.pydispatch import dispatcher
+from collections import defaultdict
+
 from scrapy import signals
+from spiders.custom_csv_item_exporter import CustomCsvItemExporter
 
 def item_type(item):
     return type(item).__name__.replace('Item','').lower()  # TeamItem => team
     
 class BscrapyPipeline(object):
-    SaveTypes = ['team','club','event', 'match']
-    def __init__(self):
-        dispatcher.connect(self.spider_opened, signals.spider_opened)
-        dispatcher.connect(self.spider_closed, signals.spider_closed)
+    SaveTypes = ['home','new']
 
+    @classmethod
+    def from_crawler(cls, crawler):
+        pipeline = cls()
+        crawler.signals.connect(pipeline.spider_opened, signals.spider_opened)
+        crawler.signals.connect(pipeline.spider_closed, signals.spider_closed)
+        return pipeline
+        
     def spider_opened(self, spider):
         self.files = dict([ (name, open(name+'.csv','w+b')) for name in self.SaveTypes ])
-        self.exporters = dict([ (name,CsvItemExporter(self.files[name])) for name in self.SaveTypes])
+        self.exporters = dict([ (name, CustomCsvItemExporter(self.files[name])) for name in self.SaveTypes])
         [e.start_exporting() for e in self.exporters.values()]
         
     def spider_closed(self, spider):

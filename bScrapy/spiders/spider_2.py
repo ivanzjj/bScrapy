@@ -40,9 +40,8 @@ class ScrapyVersion2(CrawlSpider):
     def __init__(self):
         logging.info ("Loading Last data......")
         with open(LAST_DATA_FILE, "r") as fp:
-            csv_reader = csv.DictReader (fp)
+            csv_reader = csv.DictReader (fp, delimiter='\t')
             for row in csv_reader:
-                print type (row), row
                 id_ = row['hid']
                 self.old_data_map[id_] = []
                 self.old_data_map[id_].append (row['prices'].split(','))
@@ -106,7 +105,6 @@ class ScrapyVersion2(CrawlSpider):
                 now = str(datetime.date.today())
                 if hid not in self.old_data_map:
                     # new home
-#                    print "new home: %s" % (hid)
                     new_item = NewItem ()
                     new_item['title'] = title
                     new_item['address'] = address
